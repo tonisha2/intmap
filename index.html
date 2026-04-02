@@ -1,67 +1,210 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <title>מפת מלחמות ישראל - בדיקה</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <style>
-        body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: sans-serif; }
-        #header { height: 60px; background: #2563eb; color: white; display: flex; align-items: center; padding: 0 20px; z-index: 1001; position: relative; }
-        #layout { display: flex; height: calc(100vh - 60px); }
-        #map { flex: 1; background: #e5e7eb; height: 100%; } /* חשוב: גובה 100% */
-        #panel { width: 300px; border-right: 1px solid #ccc; background: white; padding: 20px; overflow-y: auto; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מפת מלחמות ישראל</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&family=Frank+Ruhl+Libre:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f0f4f8; --surface:rgba(255,255,255,0.92); --hbg:rgba(255,255,255,0.96);
+  --brd:rgba(180,200,230,0.45); --sh:0 4px 24px rgba(60,100,180,0.1);
+  --gold:#b8860b; --gold2:#d4a840;
+  --blue:#2563eb; --blue2:#3b82f6; --sky:#e8f4ff;
+  --enemy:#dc2626; --indirect:#f97316; --ally:#0ea5c9; --support:#16a34a; --neutral:#64748b;
+  --txt:#1e293b; --txt2:#475569; --txt3:#94a3b8;
+  --pw:360px; --hh:66px; --fh:38px; --r:12px; --rs:8px;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:'Assistant',sans-serif; background:var(--bg); color:var(--txt); height:100vh; overflow:hidden; direction:rtl; }
+#header { height:var(--hh); background:var(--hbg); backdrop-filter:blur(12px); border-bottom:1px solid var(--brd); display:flex; align-items:center; padding:0 16px; position:relative; z-index:1001; box-shadow:var(--sh); gap:12px; }
+#header::after { content:""; position:absolute; bottom:-1px; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,var(--gold2),transparent); opacity:.5; }
+#lw { width:52px; height:52px; flex-shrink:0; border-radius:50%; overflow:hidden; border:2px solid var(--gold2); background:#fff; box-shadow:0 0 0 3px #fff,0 2px 10px rgba(212,168,64,.3); }
+#lw img { width:100%; height:100%; object-fit:cover; display:block; }
+#tb { display:flex; flex-direction:column; justify-content:center; padding-left:12px; border-left:1px solid var(--brd); line-height:1.2; }
+#tb h1 { font-family:'Frank Ruhl Libre',serif; font-size:16px; font-weight:900; color:var(--blue); white-space:nowrap; }
+#tb h1 span { display:block; color:var(--txt3); font-weight:300; font-size:11px; font-family:'Assistant',sans-serif; margin-top:1px; }
+.fil { display:flex; align-items:center; gap:10px; padding:0 12px; flex:1; overflow:visible; }
+.fg { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+.fg label { font-size:11px; color:var(--txt3); white-space:nowrap; letter-spacing:.05em; text-transform:uppercase; font-weight:600; }
+select { background:#fff; border:1px solid var(--brd); color:var(--txt); font-family:'Assistant',sans-serif; font-size:13px; padding:5px 10px; border-radius:var(--rs); cursor:pointer; outline:none; max-width:200px; box-shadow:var(--sh); position:relative; z-index:2000; }
+#cbar { display:none; align-items:center; gap:6px; flex:1; min-width:0; overflow:visible; }
+#cbar-lbl { font-size:11px; color:var(--txt3); white-space:nowrap; font-weight:600; flex-shrink:0; }
+#clist { display:flex; gap:4px; flex-wrap:wrap; }
+#chint { font-size:10px; color:var(--txt3); white-space:nowrap; font-style:italic; flex-shrink:0; }
+.ctag { font-size:11px; font-weight:600; padding:2px 9px; border-radius:12px; border:1px solid; white-space:nowrap; }
+#stats { display:flex; gap:8px; flex-shrink:0; }
+.pill { font-size:11px; padding:3px 10px; border-radius:20px; border:1px solid; white-space:nowrap; font-weight:600; }
+.pt { border-color:var(--gold2); color:var(--gold); background:rgba(212,168,64,.08); }
+.pa { border-color:var(--enemy); color:var(--enemy); background:rgba(220,38,38,.06); }
+#btn-game { flex-shrink:0; padding:7px 14px; border-radius:var(--rs); border:none; background:linear-gradient(135deg,var(--blue),var(--blue2)); color:#fff; font-family:'Assistant',sans-serif; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; }
+#btn-game.active { background:linear-gradient(135deg,#16a34a,#22c55e); }
+#layout { display:flex; height:calc(100vh - var(--hh) - var(--fh)); }
+#map { flex:1; z-index:1; position:relative; background: #e5e7eb; }
+.mtt { background:rgba(255,255,255,.97)!important; border:1px solid var(--brd)!important; color:var(--txt)!important; font-family:'Assistant',sans-serif!important; font-size:12px!important; border-radius:var(--rs)!important; padding:4px 10px!important; box-shadow:var(--sh)!important; font-weight:600; }
+#legend { position:absolute; bottom:14px; right:14px; z-index:500; background:var(--surface); backdrop-filter:blur(10px); border:1px solid var(--brd); border-radius:var(--r); padding:12px 16px; font-size:11px; color:var(--txt2); box-shadow:var(--sh); }
+#legend b { display:block; font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:var(--gold); margin-bottom:8px; font-weight:700; }
+.li { display:flex; align-items:center; gap:8px; margin-bottom:5px; }
+.ld { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+#panel { width:var(--pw); background:var(--surface); backdrop-filter:blur(14px); border-right:1px solid var(--brd); display:flex; flex-direction:column; overflow:hidden; flex-shrink:0; box-shadow:var(--sh); position:relative; z-index:100; }
+#pempty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; color:var(--txt3); padding:36px; text-align:center; }
+#pempty-ico { width:56px; height:56px; border-radius:50%; background:var(--sky); display:flex; align-items:center; justify-content:center; font-size:24px; }
+#pcon { display:none; flex-direction:column; height:100%; overflow:hidden; }
+#pcon.on { display:flex; }
+#phead { padding:16px 18px 12px; border-bottom:1px solid var(--brd); background:rgba(240,248,255,.8); flex-shrink:0; }
+#pname { font-family:'Frank Ruhl Libre',serif; font-size:21px; font-weight:900; color:var(--txt); margin-bottom:7px; }
+#pbdg { display:flex; gap:6px; flex-wrap:wrap; }
+.badge { font-size:11px; padding:2px 9px; border-radius:20px; border:1px solid; font-weight:600; }
+#pbody { flex:1; overflow-y:auto; padding:14px 16px; }
+.icard { background:rgba(255,255,255,.85); border:1px solid var(--brd); border-radius:var(--r); padding:12px 14px; margin-bottom:10px; }
+.icard-title { font-size:10px; font-weight:700; color:var(--txt3); margin-bottom:7px; display:flex; align-items:center; gap:5px; }
+.icard-body { font-size:13px; line-height:1.8; color:var(--txt2); }
+.ci { display:flex; align-items:center; gap:10px; background:rgba(255,255,255,.7); border:1px solid var(--brd); border-radius:var(--rs); padding:8px 11px; cursor:pointer; margin-bottom:5px; }
+.cd { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.cn { font-size:13px; font-weight:600; color:var(--txt); }
+.cr { font-size:11px; color:var(--txt3); margin-right:auto; }
+#footer { height:var(--fh); background:rgba(255,255,255,0.92); border-top:1px solid var(--brd); display:flex; align-items:center; justify-content:center; gap:10px; font-size:11px; color:var(--txt3); }
+#gov { display:none; position:absolute; top:0; left:0; right:0; bottom:0; z-index:900; pointer-events:none; }
+#gov.on { display:block; }
+#gbar { position:absolute; top:0; left:0; right:0; background:rgba(255,255,255,0.97); border-bottom:1px solid var(--brd); padding:10px 18px; z-index:901; pointer-events:all; display:flex; align-items:center; gap:14px; }
+#gq { flex:1; font-size:14px; font-weight:600; color:var(--txt); }
+#gscore { display:flex; flex-direction:column; align-items:center; background:var(--sky); border-radius:var(--rs); padding:5px 12px; }
+#gfb { display:none; position:absolute; bottom:70px; left:50%; transform:translateX(-50%); background:#fff; border-radius:var(--r); padding:16px 28px; text-align:center; box-shadow:0 8px 40px rgba(0,0,0,.12); pointer-events:all; border:2px solid transparent; min-width:280px; z-index:902; }
+#gfb.correct { border-color:#16a34a; }
+#gfb.wrong { border-color:#dc2626; }
+#gend { display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:#fff; border-radius:var(--r); padding:36px; text-align:center; box-shadow:0 16px 60px rgba(0,0,0,0.15); z-index:902; pointer-events:all; border:2px solid var(--blue2); }
+@keyframes pulse-ring { 0%{transform:scale(1);opacity:.7} 70%{transform:scale(2.4);opacity:0} 100%{transform:scale(2.4);opacity:0} }
+@media(max-width:768px) {
+  :root { --pw:100vw; --hh:58px; }
+  #panel { position:absolute; bottom:var(--fh); left:0; right:0; height:45vh; z-index:800; border-radius:16px 16px 0 0; }
+}
+</style>
 </head>
 <body>
 
 <div id="header">
-    <h2>מפת מלחמות ישראל - גרסת בדיקה</h2>
+  <div id="lw"><img src="https://upload.wikimedia.org/wikipedia/commons/d/d4/Flag_of_Israel.svg" alt="לוגו" style="width:100%;height:100%;object-fit:cover;"></div>
+  <div id="tb"><h1>מפת מלחמות ישראל<span>ויזואליזציה היסטורית</span></h1></div>
+  <div class="fil" id="fil">
+    <div class="fg"><label>מערכה:</label><select id="sw"><option value="all">— הכל —</option></select></div>
+    <div id="cbar"><span id="cbar-lbl">מדינות מעורבות:</span><div id="clist"></div></div>
+  </div>
+  <div id="stats"><span class="pill pt" id="pt">0 רשומות</span><span class="pill pa" id="pa">0 פעילות</span></div>
+  <button id="btn-game" onclick="startGame()">🎮 מצב משחק</button>
 </div>
 
 <div id="layout">
-    <div id="panel">
-        <div id="pname">לחץ על מדינה במפה</div>
-        <hr>
-        <div id="pdetails">מידע יופיע כאן.</div>
+  <div id="map">
+    <div id="gov">
+      <div id="gbar"><div id="gq">שאלה <span id="qn">1</span>: <span id="qtxt">טוען...</span></div><div id="gscore">ניקוד: <span id="sv">0</span></div></div>
+      <div id="gfb"><div id="ft"></div><button onclick="nextQuestion()">הבא ←</button></div>
+      <div id="gend"><h2>המשחק הסתיים!</h2><div id="fs"></div><button onclick="exitGame()">חזרה</button></div>
     </div>
-    <div id="map"></div>
+    <div id="legend"><b>מקרא</b>
+      <div class="li"><div class="ld" style="background:#dc2626"></div>אויב / פעיל</div>
+      <div class="li"><div class="ld" style="background:#0ea5c9"></div>בעל ברית</div>
+    </div>
+  </div>
+  <div id="panel">
+    <div id="pempty"><div id="pempty-ico">🗺️</div><p>בחר מערכה או לחץ על סמן במפה</p></div>
+    <div id="pcon">
+      <div id="phead"><div id="pname"></div><div id="pbdg"></div></div>
+      <div id="pbody">
+        <div class="icard"><div class="icard-title">⚔️ מניעים</div><div class="icard-body" id="pm"></div></div>
+        <div class="icard"><div class="icard-title">🏳️ השלכות</div><div class="icard-body" id="po"></div></div>
+        <div id="cl"></div>
+      </div>
+    </div>
+  </div>
 </div>
+
+<div id="footer">עיצוב ופיתוח: רוני שלום | roni@arabicmedia.co.il</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    console.log("Script started...");
+const DATA = [
+  {war:"מלחמת העצמאות",year:1948,country:"מצרים",role:"צד פעיל (פולש)",motives:"מניעת הקמת המדינה",outcome:"תבוסה והסכמי שביתת נשק"},
+  {war:"מלחמת העצמאות",year:1948,country:"ירדן",role:"צד פעיל (פולש)",motives:"שליטה בירושלים ובגדה",outcome:"סיפוח הגדה המערבית"},
+  {war:"מלחמת ששת הימים",year:1967,country:"סוריה",role:"צד פעיל",motives:"סכסוך מים ותמיכה בפח\"ע",outcome:"איבוד רמת הגולן"},
+  {war:"מלחמת יום הכיפורים",year:1973,country:"עיראק",role:"חיל משלוח",motives:"הצלת דמשק מנפילה",outcome:"אבדות כבדות בגולן"},
+  {war:"חרבות ברזל",year:2023,country:"איראן",role:"הובלה ומימון",motives:"השמדת ישראל, הגמוניה",outcome:"עימות ישיר וסנקציות"}
+];
 
-    // נתונים בסיסיים לבדיקה
-    const DATA = [
-        {country: "מצרים", lat: 26.8, lng: 30.8, info: "מלחמת העצמאות, ששת הימים, יום כיפור"},
-        {country: "סוריה", lat: 34.8, lng: 38.9, info: "מלחמת ששת הימים, יום כיפור"},
-        {country: "ירדן", lat: 31.2, lng: 36.5, info: "מלחמת העצמאות, ששת הימים"}
-    ];
+const GEO = {
+  "מצרים":[26.8,30.8], "ירדן":[31.2,36.5], "סוריה":[34.8,38.9], "עיראק":[33.2,43.7], "איראן":[32.4,53.7]
+};
 
-    try {
-        console.log("Initializing map...");
-        // יצירת המפה
-        const map = L.map('map').setView([31.5, 35.0], 5);
+let map, activeMarkers = [], gameActive = false;
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
+function initApp() {
+  const wars = [...new Set(DATA.map(d => d.war))];
+  const sw = document.getElementById("sw");
+  wars.forEach(w => { const o = document.createElement("option"); o.value = w; o.textContent = w; sw.appendChild(o); });
+  sw.addEventListener("change", render);
 
-        console.log("Adding markers...");
-        // הוספת סמנים
-        DATA.forEach(item => {
-            const marker = L.marker([item.lat, item.lng]).addTo(map);
-            marker.bindTooltip(item.country);
-            marker.on('click', () => {
-                document.getElementById('pname').innerText = item.country;
-                document.getElementById('pdetails').innerText = item.info;
-            });
-        });
+  map = L.map("map").setView([31.5, 38.0], 5);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/voyager/{z}/{x}/{y}{r}.png").addTo(map);
+  
+  L.marker([31.5, 34.8]).addTo(map).bindTooltip("ישראל", {permanent:true});
+  render();
+}
 
-        console.log("Map ready!");
-    } catch (e) {
-        console.error("Map error:", e);
+function rc(role) {
+  if (/פולש|פעיל|יוזם|הובלה/.test(role)) return "#dc2626";
+  return "#16a34a";
+}
+
+function render() {
+  activeMarkers.forEach(m => map.removeLayer(m)); activeMarkers = [];
+  const val = document.getElementById("sw").value;
+  const filtered = val === "all" ? DATA : DATA.filter(d => d.war === val);
+  
+  filtered.forEach(r => {
+    const coords = GEO[r.country];
+    if (coords) {
+      const m = L.marker(coords).addTo(map).bindTooltip(r.country);
+      m.on("click", () => showPanel(r, filtered));
+      activeMarkers.push(m);
     }
+  });
+  document.getElementById("pt").textContent = filtered.length + " רשומות";
+}
+
+function showPanel(row, all) {
+  document.getElementById("pempty").style.display = "none";
+  document.getElementById("pcon").classList.add("on");
+  document.getElementById("pname").textContent = row.country;
+  document.getElementById("pm").textContent = row.motives;
+  document.getElementById("po").textContent = row.outcome;
+  document.getElementById("pbdg").innerHTML = `<span class="badge">${row.role}</span>`;
+}
+
+// מצב משחק מתוקן (בלי שגיאת מירכאות)
+let gQ = [], gIdx = 0, gScore = 0;
+function startGame() {
+  gameActive = true; gIdx = 0; gScore = 0;
+  gQ = DATA.sort(() => 0.5 - Math.random()).slice(0, 5);
+  document.getElementById("gov").classList.add("on");
+  showQ();
+}
+
+function showQ() {
+  const q = gQ[gIdx];
+  document.getElementById("qn").textContent = gIdx + 1;
+  document.getElementById("qtxt").textContent = `איזו מדינה הייתה מעורבת ב-${q.war} מהסיבה: ${q.motives}?`;
+  document.getElementById("gfb").style.display = "none";
+}
+
+function nextQuestion() {
+  gIdx++;
+  if (gIdx < gQ.length) showQ();
+  else { document.getElementById("gend").style.display = "block"; }
+}
+
+function exitGame() { location.reload(); }
+
+window.onload = initApp;
 </script>
 </body>
 </html>
