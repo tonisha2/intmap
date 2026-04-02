@@ -9,72 +9,110 @@
     <style>
         :root {
             --bg:#f0f4f8; --gold2:#d4a840; --blue:#2563eb;
-            --txt:#1e293b; --txt3:#94a3b8; --pw:360px; --hh:66px;
+            --txt:#1e293b; --txt2:#475569; --txt3:#94a3b8;
+            --pw:360px; --hh:66px;
         }
         * { box-sizing:border-box; margin:0; padding:0; }
         body, html { font-family:'Assistant',sans-serif; background:var(--bg); color:var(--txt); height:100%; width:100%; overflow:hidden; direction:rtl; }
+        
         #main-container { display: flex; flex-direction: column; height: 100vh; }
+        
         #header { 
             height:var(--hh); background:#fff; border-bottom:1px solid #cbd5e1; 
             display:flex; align-items:center; padding:0 16px; z-index:2000; gap:12px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
-        #lw { width:52px; height:52px; border-radius:50%; overflow:hidden; border:2px solid var(--gold2); }
+        #lw { width:52px; height:52px; border-radius:50%; overflow:hidden; border:2px solid var(--gold2); background: #fff; flex-shrink: 0; }
         #lw img { width:100%; height:100%; object-fit:cover; }
-        #tb h1 { font-family:'Frank Ruhl Libre',serif; font-size:16px; color:var(--blue); }
+        
+        #tb h1 { font-family:'Frank Ruhl Libre',serif; font-size:18px; color:var(--blue); margin:0; }
+        #tb span { display:block; font-size:11px; color:var(--txt3); font-family:'Assistant'; }
+
         #layout { display: flex; flex: 1; overflow: hidden; position: relative; }
-        #panel { width: var(--pw); background: white; border-left: 1px solid #ddd; padding: 20px; overflow-y: auto; z-index: 1000; }
-        #map { flex: 1; height: 100%; position: relative; z-index: 1; background: #eee; }
+        
+        /* פאנל מידע */
+        #panel { width: var(--pw); background: white; border-left: 1px solid #ddd; padding: 25px; overflow-y: auto; z-index: 1000; box-shadow: 4px 0 15px rgba(0,0,0,0.05); }
+        #p-name { font-family:'Frank Ruhl Libre',serif; font-size: 24px; color: var(--blue); margin-bottom: 15px; }
+
+        /* מפה */
+        #map { flex: 1; height: 100%; position: relative; z-index: 1; background: #ebf2f7; }
+
+        /* בועת מידע מעוצבת על המפה */
+        .mtt { background: white !important; border: 1px solid var(--blue) !important; border-radius: 6px !important; font-weight: bold !important; padding: 2px 8px !important; }
+
+        /* ממשק משחק */
         #gov-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5000; pointer-events: none; display: none; }
         #gov-layer.active { display: block; }
-        #game-card { pointer-events: auto; background: white; width: 400px; margin: 20px auto; padding: 25px; border-radius: 15px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); border: 3px solid var(--blue); text-align: center; }
-        #progress-bar { height: 6px; background: #eee; border-radius: 3px; margin-bottom: 15px; overflow: hidden; }
-        #progress-fill { height: 100%; background: var(--blue); width: 0%; transition: width 0.3s; }
-        .icard { border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:10px; text-align: right; }
-        .icard-title { font-size:10px; font-weight:700; color:var(--txt3); }
-        .btn-action { padding: 10px 20px; cursor: pointer; border-radius: 8px; border: none; font-weight: bold; }
-        .btn-game { background: #16a34a; color: white; margin-right: auto; }
-        @media(max-width:768px) { #layout { flex-direction: column-reverse; } #panel { width: 100%; height: 35%; } }
+        #game-card { 
+            pointer-events: auto; background: white; width: 420px; margin: 20px auto; 
+            padding: 25px; border-radius: 15px; box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            border: 3px solid var(--blue); text-align: center;
+        }
+        
+        .icard { background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:15px; margin-bottom:12px; text-align: right; }
+        .icard-title { font-size:11px; font-weight:700; color:var(--txt3); text-transform: uppercase; margin-bottom:5px; }
+        
+        .btn-game { background: #16a34a; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-right: auto; }
+
+        /* עיצוב סמן (Marker) מותאם אישית */
+        .custom-marker { border: 2px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.3); transition: transform 0.2s; }
+        .custom-marker:hover { transform: scale(1.2); }
+
+        @media(max-width:768px) { #layout { flex-direction: column-reverse; } #panel { width: 100%; height: 40%; } }
     </style>
 </head>
 <body>
 
 <div id="main-container">
     <div id="header">
-        <div id="lw"><img src="data:image/png;base64,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" alt="לוגו"></div>
-        <div id="tb"><h1>מפת מלחמות ישראל<span>ויזואליזציה היסטורית</span></h1></div>
-        <div style="margin-right: 20px;">
-            <select id="war-select" style="padding: 5px; border-radius: 5px;">
+        <div id="lw">
+            <img src="data:image/png;base64,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" alt="לוגו">
+        </div>
+        <div id="tb">
+            <h1>מפת מלחמות ישראל<span>ויזואליזציה היסטורית אינטראקטיבית</span></h1>
+        </div>
+        <div style="margin-right: auto; display: flex; align-items: center; gap: 15px;">
+            <select id="war-select" style="padding: 7px; border-radius: 6px; border: 1px solid #ccc; font-family: inherit;">
                 <option value="all">כל המלחמות</option>
             </select>
+            <button class="btn-game" onclick="startGame()">🎮 מצב משחק (25 שאלות)</button>
         </div>
-        <button class="btn-action btn-game" onclick="startGame()">🎮 מצב משחק (25 שאלות)</button>
     </div>
 
     <div id="layout">
         <div id="panel">
-            <h2 id="p-name">בחר מדינה במפה</h2>
-            <hr style="margin: 15px 0;">
-            <div id="p-content">לחץ על סמן במפה כדי לראות את המניעים והתוצאות של כל מדינה בעימות.</div>
+            <div id="p-empty">
+                <div id="pempty-ico">🗺️</div>
+                <p><strong>בחר מערכה מהתפריט</strong><br>או לחץ על סמן במפה למידע</p>
+            </div>
+            <div id="p-content" style="display: none;">
+                <h2 id="p-name"></h2>
+                <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
+                <div id="p-details"></div>
+            </div>
         </div>
         <div id="map"></div>
+        
         <div id="gov-layer">
             <div id="game-card">
-                <div id="progress-bar"><div id="progress-fill"></div></div>
-                <div id="q-text" style="font-size: 18px; font-weight: bold; margin-bottom: 15px; min-height: 60px;">טוען שאלה...</div>
-                <div style="color: #2563eb; font-size: 14px; margin-bottom: 15px; font-weight: bold;">📍 משימה: מצא את המדינה ולחץ על הסמן שלה במפה!</div>
-                <div id="feedback" style="display:none; margin-top: 15px; padding: 15px; border-radius: 10px; text-align: right;"></div>
-                <button id="next-btn" class="btn-action" style="display:none; background:#2563eb; color:white; width:100%; margin-top:15px;" onclick="nextQuestion()">המשך לשאלה הבאה ←</button>
+                <div id="q-text" style="font-size: 18px; font-weight: bold; margin-bottom: 15px; min-height: 60px; line-height: 1.4;">טוען...</div>
+                <div style="color: var(--blue); font-size: 14px; margin-bottom: 15px; font-weight: bold;">📍 משימה: מצא את המדינה הנכונה ולחץ על הסמן שלה!</div>
+                <div id="feedback" style="display:none; margin-top: 10px; padding: 15px; border-radius: 10px; text-align: right; font-size: 14px; line-height: 1.6;"></div>
+                <button id="next-btn" style="display:none; margin-top: 15px; padding: 10px; width: 100%; cursor: pointer; background: var(--blue); color: white; border: none; border-radius: 6px; font-weight: bold;" onclick="nextQuestion()">המשך לשאלה הבאה ←</button>
                 <div id="final-score" style="display:none;">
-                    <h2 id="score-text" style="font-size: 32px; color: #b8860b;"></h2>
-                    <button class="btn-action" style="background:#2563eb; color:white;" onclick="location.reload()">חזרה למפה</button>
+                    <h2 id="score-text" style="color: var(--gold); font-size: 32px;"></h2>
+                    <button class="btn-game" style="margin-top: 20px;" onclick="location.reload()">חזרה למפה</button>
                 </div>
             </div>
         </div>
     </div>
+    
+    <div id="footer">עיצוב ופיתוח: רוני שלום | roni@arabicmedia.co.il | גרסה 2.0</div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+// המאגר המלא
 const DATA = [
     {war:"מלחמת העצמאות",year:1948,country:"מצרים",role:"צד פעיל (פולש)",motives:"מניעת הקמת המדינה, הנהגת העולם הערבי",outcome:"תבוסה צבאית והסכמי שביתת נשק"},
     {war:"מלחמת העצמאות",year:1948,country:"ירדן",role:"צד פעיל (פולש)",motives:"שליטה טריטוריאלית בירושלים ובגדה",outcome:"סיפוח הגדה המערבית"},
@@ -82,34 +120,43 @@ const DATA = [
     {war:"מלחמת העצמאות",year:1948,country:"עיראק",role:"צד פעיל (פולש)",motives:"סולידריות פאן-ערבית",outcome:"נסיגה ללא הסכם רשמי"},
     {war:"מלחמת העצמאות",year:1948,country:"לבנון",role:"צד פעיל (פולש)",motives:"לחץ ערבי פנימי וחיצוני",outcome:"נסיגה לקו הגבול הבינלאומי"},
     {war:"מלחמת סיני",year:1956,country:"מצרים",role:"צד מותקף",motives:"הלאמת תעלת סואץ, אנטי-קולוניאליזם",outcome:"הישג מדיני למרות מפלה צבאית"},
-    {war:"מלחמת ששת הימים",year:1967,country:"מצרים",role:"צד פעיל",motives:"חסימת מצרי טיראן",outcome:"איבוד חצי האי סיני ורצועת עזה"},
-    {war:"מלחמת ששת הימים",year:1967,country:"סוריה",role:"צד פעיל",motives:"סכסוך על מקורות המים",outcome:"איבוד רמת הגולן"},
-    {war:"מלחמת יום הכיפורים",year:1973,country:"מצרים",role:"צד פעיל (יוזם)",motives:"השבת סיני וכבוד לאומי",outcome:"פתיחת הדרך להסכם שלום"},
-    {war:"מלחמת יום הכיפורים",year:1973,country:"עיראק",role:"חיל משלוח",motives:"הצלת דמשק מנפילה",outcome:"אבדות כבדות בחזית"},
-    {war:"חרבות ברזל",year:2023,country:"איראן",role:"הובלה ומימון",motives:"השמדת ישראל, הגמוניה אזורית",outcome:"עימות ישיר וסנקציות"},
-    {war:"חרבות ברזל",year:2024,country:"תימן (חותים)",role:"תוקפת ימית",motives:"מצור ימי וסולידריות עם עזה",outcome:"תקיפות קואליציה והרתעה"},
-    {war:"חרבות ברזל",year:2024,country:"לבנון",role:"חזית פעילה",motives:"רתימת ישראל לחזית נוספת",outcome:"הרס תשתיתי נרחב בדרום לבנון"}
+    {war:"מלחמת ששת הימים",year:1967,country:"מצרים",role:"צד פעיל",motives:"חסימת מצרי טיראן, גירוש כוח האו\"ם",outcome:"איבוד חצי האי סיני ורצועת עזה"},
+    {war:"מלחמת ששת הימים",year:1967,country:"סוריה",role:"צד פעיל",motives:"סכסוך על מקורות המים ותמיכה בפח\"ע",outcome:"איבוד רמת הגולן"},
+    {war:"מלחמת ששת הימים",year:1967,country:"ירדן",role:"צד פעיל",motives:"מחויבות להסכם הגנה עם מצרים",outcome:"איבוד הגדה המערבית ומזרח ירושלים"},
+    {war:"מלחמת יום הכיפורים",year:1973,country:"מצרים",role:"צד פעיל (יוזם)",motives:"השבת סיני וכבוד לאומי שנפגע",outcome:"פתיחת הדרך להסכם שלום (1979)"},
+    {war:"מלחמת יום הכיפורים",year:1973,country:"סוריה",role:"צד פעיל (יוזם)",motives:"השבת רמת הגולן",outcome:"בלימה ומתקפת נגד ישראלית עד פאתי דמשק"},
+    {war:"מלחמת יום הכיפורים",year:1973,country:"עיראק",role:"חיל משלוח מאסיבי",motives:"הצלת דמשק מנפילה וסולידריות",outcome:"אבדות כבדות בחזית רמת הגולן"},
+    {war:"חרבות ברזל",year:2023,country:"איראן",role:"הובלה ומימון",motives:"השמדת ישראל, הגמוניה אזורית",outcome:"עימות ישיר חסר תקדים וסנקציות עולמיות"},
+    {war:"חרבות ברזל",year:2024,country:"תימן (חותים)",role:"תוקפת ימית",motives:"מצור ימי וסולידריות עם עזה",outcome:"תקיפות קואליציה והרתעה בינלאומית"},
+    {war:"חרבות ברזל",year:2024,country:"לבנון",role:"חזית פעילה (חיזבאללה)",motives:"רתימת ישראל לחזית נוספת",outcome:"הרס תשתיתי ופינוי אוכלוסייה בדרום לבנון"}
 ];
 
 const GEO = {
     "מצרים":[26.8, 30.8], "ירדן":[31.2, 36.5], "סוריה":[34.8, 38.9], "עיראק":[33.2, 43.7],
-    "לבנון":[33.9, 35.9], "איראן":[32.4, 53.7], "תימן (חותים)":[15.4, 44.2]
+    "לבנון":[33.9, 35.9], "איראן":[32.4, 53.7], "תימן (חותים)":[15.4, 44.2], "ערב הסעודית":[24.0, 45.0]
 };
 
 let map, activeMarkers = [], gameActive = false, gIdx = 0, gScore = 0, currentQ = null;
-const Q_TOTAL = 25;
 
 function init() {
+    // אתחול המפה עם שרת התומך בשמות בעברית
     map = L.map('map').setView([31.5, 38.0], 5);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-    setTimeout(() => map.invalidateSize(), 500);
 
+    // פותר את בעיית ה-Grid: מכריח את המפה לחשב גודל מחדש
+    setTimeout(() => { map.invalidateSize(); }, 300);
+
+    // מילוי ה-Select
     const wars = [...new Set(DATA.map(d => d.war))];
     const select = document.getElementById("war-select");
     wars.forEach(w => {
         let opt = document.createElement("option"); opt.value = w; opt.textContent = w; select.appendChild(opt);
     });
     select.onchange = renderMarkers;
+
+    // הוספת ישראל כסמן קבוע
+    L.circleMarker([31.5, 34.8], { color: 'blue', fillOpacity: 0.8, radius: 8 }).addTo(map).bindTooltip("ישראל", {permanent: true, className: "mtt"});
+
     renderMarkers();
 }
 
@@ -122,15 +169,28 @@ function renderMarkers() {
     const items = val === "all" ? DATA : DATA.filter(d => d.war === val);
 
     items.forEach(item => {
-        if(GEO[item.country]) {
-            const m = L.marker(GEO[item.country]).addTo(map);
-            m.bindTooltip(item.country);
+        const coords = GEO[item.country];
+        if(coords) {
+            // יצירת סמן מעוצב (במקום הסיכה הכחולה הרגילה)
+            const m = L.circleMarker(coords, {
+                color: item.role.includes("פולש") || item.role.includes("אויב") ? '#dc2626' : '#2563eb',
+                fillColor: item.role.includes("פולש") || item.role.includes("אויב") ? '#dc2626' : '#2563eb',
+                fillOpacity: 0.6,
+                radius: 10,
+                className: 'custom-marker'
+            }).addTo(map);
+            
+            m.bindTooltip(item.country, {direction: 'top', offset: [0, -10], className: 'mtt'});
+            
             m.on('click', () => {
+                document.getElementById("p-empty").style.display = "none";
+                document.getElementById("p-content").style.display = "block";
                 document.getElementById("p-name").textContent = item.country;
-                document.getElementById("p-content").innerHTML = `
+                document.getElementById("p-details").innerHTML = `
                     <div class="icard"><div class="icard-title">מערכה</div><b>${item.war}</b></div>
                     <div class="icard"><div class="icard-title">מניעים</div>${item.motives}</div>
-                    <div class="icard"><div class="icard-title">תוצאות</div>${item.outcome}</div>`;
+                    <div class="icard"><div class="icard-title">תוצאות</div>${item.outcome}</div>
+                `;
             });
             activeMarkers.push(m);
         }
@@ -144,27 +204,29 @@ function startGame() {
 }
 
 function nextQuestion() {
-    if(gIdx >= Q_TOTAL) { finishGame(); return; }
+    if(gIdx >= 25) { finishGame(); return; }
     document.getElementById("feedback").style.display = "none";
     document.getElementById("next-btn").style.display = "none";
-    document.getElementById("progress-fill").style.width = `${(gIdx/Q_TOTAL)*100}%`;
     
+    // בוחר שאלה רנדומלית
     currentQ = DATA[Math.floor(Math.random() * DATA.length)];
     const types = ["motives", "outcome", "role"];
     const type = types[Math.floor(Math.random() * types.length)];
     
     let text = "";
-    if(type === "motives") text = `איזו מדינה פעלה ב-<b>${currentQ.war}</b> מהמניע: "${currentQ.motives}"?`;
-    else if(type === "outcome") text = `עבור מי הסתיימה <b>${currentQ.war}</b> בתוצאה: "${currentQ.outcome}"?`;
-    else text = `מי הייתה ה-<b>${currentQ.role}</b> ב-${currentQ.war}?`;
+    if(type === "motives") text = `שאלה ${gIdx+1}/25:<br>איזו מדינה פעלה ב-<b>${currentQ.war}</b> מהמניע הבא:<br>"${currentQ.motives}"?`;
+    else if(type === "outcome") text = `שאלה ${gIdx+1}/25:<br>עבור איזו מדינה הסתיימה <b>${currentQ.war}</b> בתוצאה הבאה:<br>"${currentQ.outcome}"?`;
+    else text = `שאלה ${gIdx+1}/25:<br>מי הייתה ה-<b>${currentQ.role}</b> ב-${currentQ.war}?`;
 
     document.getElementById("q-text").innerHTML = text;
     
+    // מציג את כל המדינות על המפה בתור סמנים ללחיצה
     activeMarkers.forEach(m => map.removeLayer(m));
     activeMarkers = [];
-    Object.keys(GEO).forEach(c => {
-        const m = L.marker(GEO[c]).addTo(map);
-        m.on('click', () => checkAnswer(c));
+    Object.keys(GEO).forEach(cName => {
+        const m = L.circleMarker(GEO[cName], {radius: 12, color: 'orange', fillOpacity: 0.5}).addTo(map);
+        m.bindTooltip(cName, {className: 'mtt'});
+        m.on('click', () => checkAnswer(cName));
         activeMarkers.push(m);
     });
 }
@@ -177,7 +239,12 @@ function checkAnswer(ans) {
     const fb = document.getElementById("feedback");
     fb.style.display = "block";
     fb.style.background = isCorrect ? "#dcfce7" : "#fee2e2";
-    fb.innerHTML = `<b>${isCorrect ? "נכון!" : "טעות."}</b> המדינה היא ${currentQ.country}.<br>${currentQ.outcome}`;
+    fb.style.border = isCorrect ? "1px solid #16a34a" : "1px solid #dc2626";
+    fb.innerHTML = `
+        <b style="font-size:16px;">${isCorrect ? "✅ נכון מאוד!" : "❌ טעות..."}</b><br>
+        המדינה הנכונה: <b>${currentQ.country}</b><br>
+        <b>הסבר:</b> ${currentQ.outcome}
+    `;
     document.getElementById("next-btn").style.display = "block";
     gIdx++;
 }
@@ -186,8 +253,9 @@ function finishGame() {
     document.getElementById("q-text").style.display = "none";
     document.getElementById("feedback").style.display = "none";
     document.getElementById("next-btn").style.display = "none";
-    document.getElementById("final-score").style.display = "block";
-    document.getElementById("score-text").textContent = `ניקוד: ${gScore} מתוך ${Q_TOTAL}`;
+    const fs = document.getElementById("final-score");
+    fs.style.display = "block";
+    document.getElementById("score-text").textContent = `ניקוד סופי: ${gScore} מתוך 25`;
 }
 
 window.onload = init;
