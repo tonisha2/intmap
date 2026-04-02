@@ -5,169 +5,68 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>מפת מלחמות ישראל - גרסה סופית</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&family=Frank+Ruhl+Libre:wght@700;900&display=swap" rel="stylesheet">
     <style>
-        :root { --blue: #2563eb; --bg: #f8fafc; }
-        html, body { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans-serif; overflow: hidden; }
+        :root {
+            --bg:#f0f4f8; --surface:rgba(255,255,255,0.92); 
+            --gold:#b8860b; --gold2:#d4a840; --blue:#2563eb; --blue2:#3b82f6;
+            --txt:#1e293b; --txt2:#475569; --txt3:#94a3b8;
+            --pw:360px; --hh:66px; --fh:38px;
+        }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body, html { font-family:'Assistant',sans-serif; background:var(--bg); color:var(--txt); height:100%; width:100%; overflow:hidden; direction:rtl; }
         
         #main-container { display: flex; flex-direction: column; height: 100vh; }
-        #header { height: 60px; background: white; border-bottom: 2px solid #ddd; display: flex; align-items: center; padding: 0 20px; z-index: 2000; flex-shrink: 0; }
         
+        #header { 
+            height:var(--hh); background:rgba(255,255,255,0.96); backdrop-filter:blur(12px); 
+            border-bottom:1px solid rgba(180,200,230,0.45); display:flex; align-items:center; 
+            padding:0 16px; position:relative; z-index:2000; gap:12px; box-shadow: 0 4px 24px rgba(60,100,180,0.1);
+        }
+        #lw { width:52px; height:52px; flex-shrink:0; border-radius:50%; overflow:hidden; border:2px solid var(--gold2); background:#fff; }
+        #lw img { width:100%; height:100%; object-fit:cover; display:block; }
+        
+        #tb h1 { font-family:'Frank Ruhl Libre',serif; font-size:16px; font-weight:900; color:var(--blue); white-space:nowrap; }
+        #tb h1 span { display:block; color:var(--txt3); font-weight:300; font-size:11px; font-family:'Assistant',sans-serif; }
+
         #layout { display: flex; flex: 1; overflow: hidden; position: relative; }
-        #panel { width: 300px; background: white; border-left: 1px solid #ddd; padding: 15px; overflow-y: auto; z-index: 1000; }
+        #panel { width: var(--pw); background: white; border-left: 1px solid #ddd; padding: 20px; overflow-y: auto; z-index: 1000; box-shadow: 4px 0 15px rgba(0,0,0,0.05); }
         
-        /* המפה חייבת לקבל גובה מלא */
         #map { flex: 1; height: 100%; position: relative; z-index: 1; background: #eee; }
 
-        /* ממשק משחק - שים לב ל-pointer-events */
+        /* ממשק משחק צף */
         #gov-layer { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             z-index: 5000; pointer-events: none; display: none; 
         }
         #gov-layer.active { display: block; }
-        
         #game-card { 
-            pointer-events: auto; background: white; width: 350px; margin: 20px auto; 
-            padding: 20px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            border: 3px solid var(--blue); text-align: center;
+            pointer-events: auto; background: white; width: 400px; margin: 20px auto; 
+            padding: 25px; border-radius: 15px; box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            border: 3px solid var(--blue); text-align: center; position: relative;
         }
+        #progress-bar { height: 6px; background: #eee; border-radius: 3px; margin-bottom: 15px; overflow: hidden; }
+        #progress-fill { height: 100%; background: var(--blue); width: 0%; transition: width 0.3s; }
 
-        .badge { background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
-        .marker-label { font-weight: bold; background: white; border: 1px solid black; padding: 2px; }
+        .icard { background:rgba(255,255,255,0.85); border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:10px; }
+        .icard-title { font-size:10px; font-weight:700; color:var(--txt3); text-transform:uppercase; margin-bottom:5px; }
+        
+        #footer { height:var(--fh); background:white; border-top:1px solid #ddd; display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--txt3); }
+        
+        .btn-action { padding: 10px 20px; cursor: pointer; border-radius: 8px; border: none; font-weight: bold; transition: all 0.2s; }
+        .btn-primary { background: var(--blue); color: white; }
+        .btn-game { background: #16a34a; color: white; margin-right: auto; }
+
+        @media(max-width:768px) {
+            #layout { flex-direction: column-reverse; }
+            #panel { width: 100%; height: 40%; }
+            #game-card { width: 90%; }
+        }
     </style>
 </head>
 <body>
 
 <div id="main-container">
     <div id="header">
-        <strong style="margin-left: 20px;">מפת מלחמות ישראל</strong>
-        <select id="war-select" style="padding: 5px;"><option value="all">בחר מערכה...</option></select>
-        <button onclick="startGame()" style="margin-right: auto; padding: 8px 15px; cursor:pointer; background: #16a34a; color: white; border: none; border-radius: 5px;">🎮 התחל משחק</button>
-    </div>
-
-    <div id="layout">
-        <div id="panel">
-            <h3 id="p-name">פרטי מדינה</h3>
-            <div id="p-content">בחר מדינה מהמפה או מהתפריט.</div>
-        </div>
-        <div id="map"></div>
-        
-        <div id="gov-layer">
-            <div id="game-card">
-                <div id="q-text" style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">טוען...</div>
-                <div style="color: var(--blue); font-size: 14px; margin-bottom: 10px;">📍 לחץ על המדינה הנכונה במפה!</div>
-                <div id="feedback" style="display:none; margin-top: 10px; padding: 10px; border-radius: 8px;"></div>
-                <button id="next-btn" onclick="nextQuestion()" style="display:none; margin-top: 10px; padding: 10px; width: 100%; cursor: pointer;">השאלה הבאה ←</button>
-                <div id="final-score" style="display:none;">
-                    <h2 id="score-text"></h2>
-                    <button onclick="location.reload()" style="padding: 10px; cursor: pointer;">סגור וחזור למפה</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-const DATA = [
-    {war:"מלחמת העצמאות", year:1948, country:"מצרים", motives:"מניעת הקמת המדינה", coords:[26.8, 30.8]},
-    {war:"מלחמת העצמאות", year:1948, country:"ירדן", motives:"שליטה בירושלים", coords:[31.2, 36.5]},
-    {war:"מלחמת ששת הימים", year:1967, country:"סוריה", motives:"סכסוך על מקורות המים", coords:[34.8, 38.9]},
-    {war:"מלחמת יום הכיפורים", year:1973, country:"מצרים", motives:"השבת סיני", coords:[26.8, 30.8]},
-    {war:"חרבות ברזל", year:2023, country:"איראן", motives:"השמדת ישראל", coords:[32.4, 53.7]}
-];
-
-let map, markers = [], gameActive = false, currentIdx = 0, score = 0, currentQ = null;
-
-function init() {
-    console.log("Initializing map...");
-    map = L.map('map').setView([31.5, 38.0], 5);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-    
-    // תיקון נראות למפה
-    setTimeout(() => { map.invalidateSize(); }, 500);
-
-    const wars = [...new Set(DATA.map(d => d.war))];
-    const select = document.getElementById("war-select");
-    wars.forEach(w => {
-        let opt = document.createElement("option"); opt.value = w; opt.textContent = w; select.appendChild(opt);
-    });
-    select.onchange = renderMarkers;
-
-    renderMarkers();
-}
-
-function renderMarkers() {
-    if(gameActive) return;
-    markers.forEach(m => map.removeLayer(m));
-    markers = [];
-
-    const val = document.getElementById("war-select").value;
-    const items = val === "all" ? DATA : DATA.filter(d => d.war === val);
-
-    items.forEach(item => {
-        const m = L.marker(item.coords).addTo(map);
-        m.bindTooltip(item.country);
-        m.on('click', () => {
-            document.getElementById("p-name").textContent = item.country;
-            document.getElementById("p-content").innerHTML = `<b>מערכה:</b> ${item.war}<br><b>מניע:</b> ${item.motives}`;
-        });
-        markers.push(m);
-    });
-}
-
-function startGame() {
-    gameActive = true; currentIdx = 0; score = 0;
-    document.getElementById("gov-layer").classList.add("active");
-    document.getElementById("header").style.pointerEvents = "none";
-    nextQuestion();
-}
-
-function nextQuestion() {
-    if(currentIdx >= 3) { finishGame(); return; }
-    
-    document.getElementById("feedback").style.display = "none";
-    document.getElementById("next-btn").style.display = "none";
-    
-    currentQ = DATA[Math.floor(Math.random() * DATA.length)];
-    document.getElementById("q-text").textContent = `שאלה ${currentIdx + 1}: איזו מדינה פעלה ב-${currentQ.war} במטרה: "${currentQ.motives}"?`;
-    
-    // מנקים ומציגים את כל המדינות האפשריות כפתורים על המפה
-    markers.forEach(m => map.removeLayer(m));
-    markers = [];
-    
-    const uniqueCountries = [...new Set(DATA.map(d => d.country))];
-    uniqueCountries.forEach(name => {
-        const d = DATA.find(x => x.country === name);
-        const m = L.marker(d.coords).addTo(map);
-        m.on('click', () => checkAnswer(name));
-        markers.push(m);
-    });
-}
-
-function checkAnswer(name) {
-    if(document.getElementById("feedback").style.display === "block") return;
-    
-    const isCorrect = name === currentQ.country;
-    if(isCorrect) score++;
-    
-    const fb = document.getElementById("feedback");
-    fb.style.display = "block";
-    fb.style.background = isCorrect ? "#dcfce7" : "#fee2e2";
-    fb.textContent = isCorrect ? "✅ נכון מאוד!" : `❌ טעות. התשובה היא ${currentQ.country}`;
-    
-    document.getElementById("next-btn").style.display = "block";
-    currentIdx++;
-}
-
-function finishGame() {
-    document.getElementById("q-text").style.display = "none";
-    document.getElementById("feedback").style.display = "none";
-    document.getElementById("next-btn").style.display = "none";
-    document.getElementById("final-score").style.display = "block";
-    document.getElementById("score-text").textContent = `סיימת! הניקוד שלך: ${score} מתוך 3`;
-}
-
-window.onload = init;
-</script>
-</body>
-</html>
+        <div id="lw">
+            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAACgCAIAAAAErfB6AACTdklEQVR42uy9dZxc15E2XOecS809zJrRiJmZLLAsM7Mdcpgcx3FoN4mTTRy0ncRJHIccO2ZmkGxZzEwzGg1omJvh0jn1/XG7e3okJ5t9d9/3+979tqOf0+oZ9fTculWn6qmnniKICP8dH8vWXkEIOf91RDzndUR0LsKuza//97sO5L+BgRdfcKnzq1BKATPGI4Q4hnR+wfONmvu2fBs7DyFE5gngvi1v/Y+B/194LLrgYkCCiJRSQggiEuJYK2NISmnOco6xc79pzomdf+48cYzqfFvuOQAgIAABFAi4b+s7/2Pg/42PhSsvzrodAAFEIEByrplz2ZyBnV8tZ86cmc+x9DlGzT3P928g6Pw/IhIggGTf9rf/x8D/NY8FKy8CHDEeIlLmXPeMgXMmdNwx3zajftU8P863fc7quffhnOe/bdbAkLk3EAgQhMyL+7e9+z8G/l95zF1+ERDOCAUgzsma56yZyJnvwYjIGMs3W/4BnHvxfB8934NHbgLnByE68cCxrhO3EZFQQgG44CgoABzc+e7/GPifesxbdiGAhEQQIiihAIACCKGE5AxGM4H6PAfNt2V+MnWOW5+fS+dM7jx33gAJCEQQwokNgo+Ed4GCMkoQheCILPOugId2bvofA//dx+ylawk4jkEEAQLI6Eg0zj9f8/3ynNdzXnu+jQkCIQTJKJPnB+1sHBbOT0Pn+iAQAEKIEAIRCQACCMy8DULuByAgoEBCyKFdm/7HwKO9dvmFwjEMEkoIEoKEAAqauYrE8eCM8wEhlJyTBzkv5gyWS6xG/YJk5EbJvznOuQhCcCBACAgEIRAQqHPoOv8KAQkIQIKZUgrBuQNACOdFQigKIQ7vev9/DAyzl6wBkom6jgkoAQQKQAF4NiwTSijJXmVCRgI0IcSxmfNr0KzjCiFyFdRI+Zutos4xbf49kXFTSpw4jAiQ/R46knMR5xiGnItnT2vnbfJTtkM73/v/qYHnLFlLch5AMlZDyHii87mocxYigABKqWNgIIJSitkPzwhzPMn5fufYzp6j5BwbnxPYz/n1z02nURAEQgkCCiEcAwt0bJm5xzJeSzKZV+4myH0AIQRyOLpv8/+PDDxr8RoAIACUEOHEPUqc8OlcXEqJk7LSTNR1ntOsIwpCCGQtR4ERkjEwAcLyvpT1y9ypi+cYOGcG5/vzUy3HgzOfChCFyOTYQAEJEOFEDc6RAuTybfKhBhZACAGCR3Zv/u9v4NlL1hBBBGRr0JwHO9cAOaGEAkVBkCChQLLhN/MdQMSo3Cr7TzHr3tlHHgZ5Dgryj0Dpc8DLfIM5ha/IvYx
