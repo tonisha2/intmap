@@ -3,70 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מפת מלחמות ישראל - גרסה סופית</title>
+    <title>מפת מלחמות ישראל</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&family=Frank+Ruhl+Libre:wght@700;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg:#f0f4f8; --surface:rgba(255,255,255,0.92); 
-            --gold:#b8860b; --gold2:#d4a840; --blue:#2563eb; --blue2:#3b82f6;
-            --txt:#1e293b; --txt2:#475569; --txt3:#94a3b8;
-            --pw:360px; --hh:66px; --fh:38px;
+            --bg:#f0f4f8; --gold2:#d4a840; --blue:#2563eb;
+            --txt:#1e293b; --txt3:#94a3b8; --pw:360px; --hh:66px;
         }
         * { box-sizing:border-box; margin:0; padding:0; }
         body, html { font-family:'Assistant',sans-serif; background:var(--bg); color:var(--txt); height:100%; width:100%; overflow:hidden; direction:rtl; }
-        
         #main-container { display: flex; flex-direction: column; height: 100vh; }
-        
         #header { 
-            height:var(--hh); background:rgba(255,255,255,0.96); backdrop-filter:blur(12px); 
-            border-bottom:1px solid rgba(180,200,230,0.45); display:flex; align-items:center; 
-            padding:0 16px; position:relative; z-index:2000; gap:12px; box-shadow: 0 4px 24px rgba(60,100,180,0.1);
+            height:var(--hh); background:#fff; border-bottom:1px solid #cbd5e1; 
+            display:flex; align-items:center; padding:0 16px; z-index:2000; gap:12px; 
         }
-        #lw { width:52px; height:52px; flex-shrink:0; border-radius:50%; overflow:hidden; border:2px solid var(--gold2); background:#fff; }
-        #lw img { width:100%; height:100%; object-fit:cover; display:block; }
-        
-        #tb h1 { font-family:'Frank Ruhl Libre',serif; font-size:16px; font-weight:900; color:var(--blue); white-space:nowrap; }
-        #tb h1 span { display:block; color:var(--txt3); font-weight:300; font-size:11px; font-family:'Assistant',sans-serif; }
-
+        #lw { width:52px; height:52px; border-radius:50%; overflow:hidden; border:2px solid var(--gold2); }
+        #lw img { width:100%; height:100%; object-fit:cover; }
+        #tb h1 { font-family:'Frank Ruhl Libre',serif; font-size:16px; color:var(--blue); }
         #layout { display: flex; flex: 1; overflow: hidden; position: relative; }
-        #panel { width: var(--pw); background: white; border-left: 1px solid #ddd; padding: 20px; overflow-y: auto; z-index: 1000; box-shadow: 4px 0 15px rgba(0,0,0,0.05); }
-        
+        #panel { width: var(--pw); background: white; border-left: 1px solid #ddd; padding: 20px; overflow-y: auto; z-index: 1000; }
         #map { flex: 1; height: 100%; position: relative; z-index: 1; background: #eee; }
-
-        /* ממשק משחק צף */
-        #gov-layer { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            z-index: 5000; pointer-events: none; display: none; 
-        }
+        #gov-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5000; pointer-events: none; display: none; }
         #gov-layer.active { display: block; }
-        #game-card { 
-            pointer-events: auto; background: white; width: 400px; margin: 20px auto; 
-            padding: 25px; border-radius: 15px; box-shadow: 0 15px 40px rgba(0,0,0,0.2);
-            border: 3px solid var(--blue); text-align: center; position: relative;
-        }
+        #game-card { pointer-events: auto; background: white; width: 400px; margin: 20px auto; padding: 25px; border-radius: 15px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); border: 3px solid var(--blue); text-align: center; }
         #progress-bar { height: 6px; background: #eee; border-radius: 3px; margin-bottom: 15px; overflow: hidden; }
         #progress-fill { height: 100%; background: var(--blue); width: 0%; transition: width 0.3s; }
-
-        .icard { background:rgba(255,255,255,0.85); border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:10px; }
-        .icard-title { font-size:10px; font-weight:700; color:var(--txt3); text-transform:uppercase; margin-bottom:5px; }
-        
-        #footer { height:var(--fh); background:white; border-top:1px solid #ddd; display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--txt3); }
-        
-        .btn-action { padding: 10px 20px; cursor: pointer; border-radius: 8px; border: none; font-weight: bold; transition: all 0.2s; }
-        .btn-primary { background: var(--blue); color: white; }
+        .icard { border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:10px; text-align: right; }
+        .icard-title { font-size:10px; font-weight:700; color:var(--txt3); }
+        .btn-action { padding: 10px 20px; cursor: pointer; border-radius: 8px; border: none; font-weight: bold; }
         .btn-game { background: #16a34a; color: white; margin-right: auto; }
-
-        @media(max-width:768px) {
-            #layout { flex-direction: column-reverse; }
-            #panel { width: 100%; height: 40%; }
-            #game-card { width: 90%; }
-        }
+        @media(max-width:768px) { #layout { flex-direction: column-reverse; } #panel { width: 100%; height: 35%; } }
     </style>
 </head>
 <body>
 
 <div id="main-container">
     <div id="header">
-        <div id="lw">
-            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAACgCAIAAAAErfB6AACTdklEQVR42uy9dZxc15E2XOecS809zJrRiJmZLLAsM7Mdcpgcx3FoN4mTTRy0ncRJHIccO2ZmkGxZzEwzGg1omJvh0jn1/XG7e3okJ5t9d9/3+979tqOf0+oZ9fTculWn6qmnniKICP8dH8vWXkEIOf91RDzndUR0LsKuza//97sO5L+BgRdfcKnzq1BKATPGI4Q4hnR+wfONmvu2fBs7DyFE5gngvi1v/Y+B/194LLrgYkCCiJRSQggiEuJYK2NISmnOco6xc79pzomdf+48cYzqfFvuOQAgIAABFAi4b+s7/2Pg/42PhSsvzrodAAFEIEByrplz2ZyBnV8tZ86cmc+x9DlGzT3P928g6Pw/IhIggGTf9rf/x8D/NY8FKy8CHDEeIlLmXPeMgXMmdNwx3zajftU8P863fc7quffhnOe/bdbAkLk3EAgQhMyL+7e9+z8G/l95zF1+ERDOCAUgzsma56yZyJnvwYjIGMs3W/4BnHvxfB8934NHbgLnByE68cCxrhO3EZFQQgG44CgoABzc+e7/GPifesxbdiGAhEQQIiihAIACCKGE5AxGM4H6PAfNt2V+MnWOW5+fS+dM7jx33gAJCEQQwokNgo+Ed4GCMkoQheCILPOugId2bvofA//dx+ylawk4jkEEAQLI6Eg0zj9f8/3ynNdzXnu+jQkCIQTJKJPnB+1sHBbOT0Pn+iAQAEKIEAIRCQACCMy8DULuByAgoEBCyKFdm/7HwKO9dvmFwjEMEkoIEoKEAAqauYrE8eCM8wEhlJyTBzkv5gyWS6xG/YJk5EbJvznOuQhCcCBACAgEIRAQqHPoOv8KAQkIQIKZUgrBuQNACOdFQigKIQ7vev9/DAyzl6wBkom6jgkoAQQKQAF4NiwTSijJXmVCRgI0IcSxmfNr0KzjCiFyFdRI+Zutos4xbf49kXFTSpw4jAiQ/R46knMR5xiGnItnT2vnbfJTtkM73/v/qYHnLFlLch5AMlZDyHii87mocxYigABKqWNgIIJSitkPzwhzPMn5fufYzp6j5BwbnxPYz/n1z02nURAEQgkCCiEcAwt0bJm5xzJeSzKZV+4myH0AIQRyOLpv8/+PDDxr8RoAIACUEOHEPUqc8OlcXEqJk7LSTNR1ntOsIwpCCGQtR4ERkjEwAcLyvpT1y9ypi+cYOGcG5/vzUy3HgzOfChCFyOTYQAEJEOFEDc6RAuTybfKhBhZACAGCR3Zv/u9v4NlL1hBBBGRr0JwHO9cAOaGEAkVBkCChQLLhN/MdQMSo3Cr7TzHr3tlHHgZ5Dgryj0Dpc8DLfIM5ha/IvYx
+        <div id="lw"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAACgCAIAAAAErfB6AACTdklEQVR42uy9dZxc15E2XOecS809zJrRiJmZLLAsM7Mdcpgcx3FoN4mTTRy0ncRJHIccO2ZmkGxZzEwzGg1omJvh0jn1/XG7e3okJ5t9d9/3+979tqOf0+oZ9fTculWn6qmnniKICP8dH8vWXkEIOf91RDzndUR0LsKuza//97sO5L+BgRdfcKnzq1BKATPGI4Q4hnR+wfONmvu2fBs7DyFE5gngvi1v/Y+B/194LLrgYkCCiJRSQggiEuJYK2NISmnOco6xc79pzomdf+48cYzqfFvuOQAgIAABFAi4b+s7/2Pg/42PhSsvzrodAAFEIEByrplz2ZyBnV8tZ86cmc+x9DlGzT3P928g6Pw/IhIggGTf9rf/x8D/NY8FKy8CHDEeIlLmXPeMgXMmdNwx3zajftU8P863fc7quffhnOe/bdbAkLk3EAgQhMyL+7e9+z8G/l95zF1+ERDOCAUgzsma56yZyJnvwYjIGMs3W/4BnHvxfB8934NHbgLnByE68cCxrhO3EZFQQgG44CgoABzc+e7/GPifesxbdiGAhEQQIiihAIACCKGE5AxGM4H6PAfNt2V+MnWOW5+fS+dM7jx33gAJCEQQwokNgo+Ed4GCMkoQheCILPOugId2bvofA//dx+ylawk4jkEEAQLI6Eg0zj9f8/3ynNdzXnu+jQkCIQTJKJPnB+1sHBbOT0Pn+iAQAEKIEAIRCQACCMy8DULuByAgoEBCyKFdm/7HwKO9dvmFwjEMEkoIEoKEAAqauYrE8eCM8wEhlJyTBzkv5gyWS6xG/YJk5EbJvznOuQhCcCBACAgEIRAQqHPoOv8KAQkIQIKZUgrBuQNACOdFQigKIQ7vev9/DAyzl6wBkom6jgkoAQQKQAF4NiwTSijJXmVCRgI0IcSxmfNr0KzjCiFyFdRI+Zutos4xbf49kXFTSpw
